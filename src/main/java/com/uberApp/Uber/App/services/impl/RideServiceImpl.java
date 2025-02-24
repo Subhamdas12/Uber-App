@@ -3,11 +3,14 @@ package com.uberApp.Uber.App.services.impl;
 import java.util.Random;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import com.uberApp.Uber.App.entities.DriverEntity;
 import com.uberApp.Uber.App.entities.RideEntity;
 import com.uberApp.Uber.App.entities.RideRequestEntity;
+import com.uberApp.Uber.App.entities.RiderEntity;
 import com.uberApp.Uber.App.entities.enums.RideRequestStatus;
 import com.uberApp.Uber.App.entities.enums.RideStatus;
 import com.uberApp.Uber.App.exceptions.ResourceNotFoundException;
@@ -52,6 +55,16 @@ public class RideServiceImpl implements RideService {
     public RideEntity updateRideStatus(RideEntity ride, RideStatus rideStatus) {
         ride.setRideStatus(rideStatus);
         return rideRepository.save(ride);
+    }
+
+    @Override
+    public Page<RideEntity> getAllRidesOfRider(RiderEntity rider, PageRequest pageRequest) {
+        return rideRepository.findByRider(rider, pageRequest);
+    }
+
+    @Override
+    public Page<RideEntity> getAllRidesOfDriver(DriverEntity driver, PageRequest pageRequest) {
+        return rideRepository.findByDriver(driver, pageRequest);
     }
 
 }

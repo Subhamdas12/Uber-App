@@ -4,14 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * RiderDTO
- */
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RiderDTO {
-    private UserDTO user;
-    private Double rating;
+public class LoginRequestDTO {
+    private String email;
+    private String password;
 }

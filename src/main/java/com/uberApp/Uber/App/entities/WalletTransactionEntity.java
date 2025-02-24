@@ -11,6 +11,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -24,7 +25,10 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "wallet_transaction")
+@Table(name = "wallet_transaction", indexes = {
+        @Index(name = "idx_wallet_transaction_wallet", columnList = "wallet_id"),
+        @Index(name = "idx_wallet_transaction_ride", columnList = "ride_id")
+})
 public class WalletTransactionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,7 +40,7 @@ public class WalletTransactionEntity {
     private TransactionMethod transactionMethod;
 
     @OneToOne
-    private RideEntity rideEntity;
+    private RideEntity ride;
 
     private String transactionId;
 

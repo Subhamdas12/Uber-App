@@ -3,6 +3,9 @@ package com.uberApp.Uber.App.services.impl;
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,13 +14,18 @@ import com.uberApp.Uber.App.dtos.RideDTO;
 import com.uberApp.Uber.App.dtos.RideRequestDTO;
 import com.uberApp.Uber.App.dtos.RiderDTO;
 import com.uberApp.Uber.App.entities.DriverEntity;
+import com.uberApp.Uber.App.entities.RideEntity;
 import com.uberApp.Uber.App.entities.RideRequestEntity;
 import com.uberApp.Uber.App.entities.RiderEntity;
 import com.uberApp.Uber.App.entities.UserEntity;
 import com.uberApp.Uber.App.entities.enums.RideRequestStatus;
+import com.uberApp.Uber.App.entities.enums.RideStatus;
 import com.uberApp.Uber.App.exceptions.ResourceNotFoundException;
 import com.uberApp.Uber.App.repositories.RideRequestRepository;
 import com.uberApp.Uber.App.repositories.RiderRepository;
+import com.uberApp.Uber.App.services.DriverService;
+import com.uberApp.Uber.App.services.RatingService;
+import com.uberApp.Uber.App.services.RideService;
 import com.uberApp.Uber.App.services.RiderService;
 import com.uberApp.Uber.App.strategies.RideStrategyManager;
 
@@ -30,6 +38,9 @@ public class RiderServiceImpl implements RiderService {
     private final ModelMapper modelMapper;
     private final RideStrategyManager rideStrategyManager;
     private final RideRequestRepository rideRequestRepository;
+    private final RideService rideService;
+    private final RatingService ratingService;
+    private final DriverService driverService;
 
     @Override
     public RiderEntity createNewRider(UserEntity user) {
@@ -53,40 +64,60 @@ public class RiderServiceImpl implements RiderService {
         List<DriverEntity> drivers = rideStrategyManager.driverMatchingStrategy(rider.getRating())
                 .findMatchingDriver(rideRequest);
 
-        // TODO:Send notification to all the drivers about this ride request
-
         return modelMapper.map(savedRideRequest, RideRequestDTO.class);
 
     }
 
     @Override
     public RideDTO cancelRide(Long rideId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'cancelRide'");
+        RiderEntity rider = getCurrentRider();
+        RideEntity ride = rideService.getRideById(rideId);
+        if (!rider.equals(ride.getRider())) {
+            throw new RuntimeException("Rider doesnot own the ride with id : " + rideId);
+        }
+        if (!ride.getRideStatus().equals(RideStatus.CONFIRMED)) {
+            throw new RuntimeException("Ride cannot be cancelled , invalid status : " + ride.getRideStatus());
+        }
+
+        RideEntity savedRide = rideService.updateRideStatus(ride, RideStatus.CANCELLED);
+        driverService.updateDriverAvailability(ride.getDriver(), false);
+        return modelMapper.map(savedRide, RideDTO.class);
     }
 
     @Override
     public DriverDTO rateDriver(Long rideId, Integer rating) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'rateDriver'");
+        RideEntity ride = rideService.getRideById(rideId);
+        RiderEntity rider = getCurrentRider();
+        if (!rider.equals(ride.getRider())) {
+            throw new RuntimeException("Rider is not the owner of this ride");
+        }
+
+        if (!ride.getRideStatus().equals(RideStatus.ENDED)) {
+            throw new RuntimeException(
+                    "Ride status is not ended hence cannot start rating, status: " + ride.getRideStatus());
+        }
+
+        return ratingService.rateDriver(ride, rating);
     }
 
     @Override
     public RiderDTO getMyProfile() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getMyProfile'");
-    }
-
-    @Override
-    public List<RideDTO> getAllMyRides() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getAllMyRides'");
+        RiderEntity currentRider = getCurrentRider();
+        return modelMapper.map(currentRider, RiderDTO.class);
     }
 
     @Override
     public RiderEntity getCurrentRider() {
-        return riderRepository.findById(1L)
-                .orElseThrow(() -> new ResourceNotFoundException("Rider not found with id : " + 1));
+        UserEntity user = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return riderRepository.findByUser(user).orElseThrow(
+                () -> new ResourceNotFoundException("Rider not associated with user with id " + user.getId()));
+
+    }
+
+    @Override
+    public Page<RideDTO> getAllMyRides(PageRequest pageRequest) {
+        RiderEntity rider = getCurrentRider();
+        return rideService.getAllRidesOfRider(rider, pageRequest).map(ride -> modelMapper.map(ride, RideDTO.class));
     }
 
 }

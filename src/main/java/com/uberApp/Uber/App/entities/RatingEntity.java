@@ -1,14 +1,11 @@
 package com.uberApp.Uber.App.entities;
 
-import org.locationtech.jts.geom.Point;
-
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -18,30 +15,31 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Getter
-@Setter
-@Table(name = "driver", indexes = {
-        @Index(name = "idx_driver_vehicle_id", columnList = "vehicleId")
-})
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DriverEntity {
+@Table(name = "rating", indexes = {
+        @Index(name = "idx_rating_ride", columnList = "ride_id"),
+        @Index(name = "idx_rating_driver", columnList = "driver_id"),
+        @Index(name = "idx_rating_rider", columnList = "rider_id")
+})
+@Getter
+@Setter
+@Builder
+public class RatingEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @OneToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    private RideEntity ride;
 
-    private Double rating;
+    @ManyToOne
+    private RiderEntity rider;
 
-    private Boolean isAvailable;
+    @ManyToOne
+    private DriverEntity driver;
 
-    private String vehicleId;
-
-    @Column(columnDefinition = "Geometry(Point,4326)")
-    private Point currentLocation;
+    private Integer riderRating;
+    private Integer driverRating;
 
 }
